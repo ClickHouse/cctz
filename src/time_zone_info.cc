@@ -818,6 +818,25 @@ bool TimeZoneInfo::Load(ZoneInfoSource* zip) {
   return true;
 }
 
+namespace {
+
+bool CheckTimeZoneName(const std::string& name) {
+    const char * forbidden_beginnings[] = {"/", "./", "~", ".."};
+    for (const auto & pattern : forbidden_beginnings) {
+        if (name.starts_with(pattern)) {
+            return false;
+        }
+    }
+
+    if (name.find("../") != std::string::npos) {
+        return false;
+    }
+
+    return true;
+}
+
+}  // namespace
+
 bool TimeZoneInfo::Load(const std::string& name) {
   // We can ensure that the loading of UTC or any other fixed-offset
   // zone never fails because the simple, fixed-offset state can be
@@ -826,6 +845,12 @@ bool TimeZoneInfo::Load(const std::string& name) {
   auto offset = seconds::zero();
   if (FixedOffsetFromName(name, &offset)) {
     return ResetToBuiltinUTC(offset);
+  }
+
+  // Check if timezone name contains forbidden patterns
+  // that can lead to arbitrary file open.
+  if (!CheckTimeZoneName(name)) {
+      return false;
   }
 
   // Find and use a ZoneInfoSource to load the named zone.
