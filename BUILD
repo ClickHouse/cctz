@@ -12,6 +12,14 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
+package(
+    features = [
+        "header_modules",
+        "layering_check",
+        "parse_headers",
+    ],
+)
+
 licenses(["notice"])
 
 ### libraries
@@ -52,10 +60,11 @@ cc_library(
         "include/cctz/zone_info_source.h",
     ],
     includes = ["include"],
-    # OS X and iOS no longer use `linkopts = ["-framework CoreFoundation"]`
-    # as (1) bazel adds it automatically, and (2) it caused problems when
-    # cross-compiling for Android.
-    # See https://github.com/abseil/abseil-cpp/issues/326 for details.
+    linkopts = select({
+        "@platforms//os:osx": ["-Wl,-framework,CoreFoundation"],
+        "@platforms//os:ios": ["-Wl,-framework,CoreFoundation"],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
     deps = [":civil_time"],
 )
@@ -73,6 +82,7 @@ cc_test(
     srcs = ["src/civil_time_test.cc"],
     deps = [
         ":civil_time",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -84,6 +94,7 @@ cc_test(
     deps = [
         ":civil_time",
         ":time_zone",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -95,6 +106,7 @@ cc_test(
     deps = [
         ":civil_time",
         ":time_zone",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
