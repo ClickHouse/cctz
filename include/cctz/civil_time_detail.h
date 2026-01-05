@@ -95,7 +95,8 @@ CONSTEXPR_F int days_per_month(year_t y, month_t m) noexcept {
   CONSTEXPR_D int k_days_per_month[1 + 12] = {
       -1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31  // non leap year
   };
-  return k_days_per_month[m] + (m == 2 && is_leap_year(y));
+  // Avoid -Wchar-subscripts warning (int_fast8_t may be char)
+  return k_days_per_month[static_cast<int>(m)] + (m == 2 && is_leap_year(y));
 }
 
 CONSTEXPR_F fields n_day(year_t y, month_t m, diff_t d, diff_t cd,
