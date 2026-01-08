@@ -837,7 +837,6 @@ bool CheckTimeZoneName(const std::string& name) {
 
 }  // namespace
 
-
 bool TimeZoneInfo::Load(const std::string& name) {
   // We can ensure that the loading of UTC or any other fixed-offset
   // zone never fails because the simple, fixed-offset state can be
