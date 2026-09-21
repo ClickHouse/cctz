@@ -929,7 +929,10 @@ bool TimeZoneInfo::Load(ZoneInfoSource* zip) {
 namespace {
 
 bool CheckTimeZoneName(const std::string& name) {
-    const char * forbidden_beginnings[] = {"/", "./", "~", ".."};
+    // The "file:" prefix makes FileZoneInfoSource::Open treat the rest of the
+    // name as a path, so "file:/abs/path" would sidestep the "/" check below.
+    // The prefix is a test-only interface anyway, so reject it outright.
+    const char * forbidden_beginnings[] = {"/", "./", "~", "..", "file:"};
     for (const auto & pattern : forbidden_beginnings) {
         if (name.starts_with(pattern)) {
             return false;
