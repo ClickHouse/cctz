@@ -16,8 +16,11 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+#include <fstream>
 #include <future>
 #include <limits>
 #include <memory>
@@ -209,6 +212,30 @@ TEST(TimeZone, Failures) {
   EXPECT_FALSE(load_time_zone("file:/dev/stdin", &tz));
   EXPECT_FALSE(load_time_zone("file:/tmp", &tz));
 #endif
+
+  // Reject names that would open a file outside of the zoneinfo directory.
+  EXPECT_FALSE(load_time_zone("/usr/share/zoneinfo/UTC", &tz));
+  EXPECT_FALSE(load_time_zone("./UTC", &tz));
+  EXPECT_FALSE(load_time_zone("~/UTC", &tz));
+  EXPECT_FALSE(load_time_zone("../zoneinfo/UTC", &tz));
+  EXPECT_FALSE(load_time_zone("America/../../zoneinfo/UTC", &tz));
+
+  // The "file:" prefix is stripped by FileZoneInfoSource::Open before the
+  // path is built, so it must be rejected before it can bypass the checks
+  // above. Copy a zone to a location outside of the zoneinfo directory to
+  // make sure the rejection is not just a missing file.
+  {
+    const char* src = "/usr/share/zoneinfo/UTC";
+    const std::string dst = std::string(testing::TempDir()) + "cctz_utc_copy";
+    std::ifstream in(src, std::ios::binary);
+    std::ofstream out(dst, std::ios::binary);
+    out << in.rdbuf();
+    out.close();
+    EXPECT_FALSE(load_time_zone("file:" + dst, &tz));
+    EXPECT_FALSE(load_time_zone("file:/../" + dst, &tz));
+    EXPECT_FALSE(load_time_zone("file:UTC", &tz));
+    std::remove(dst.c_str());
+  }
 }
 
 TEST(TimeZone, Equality) {

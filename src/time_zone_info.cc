@@ -923,6 +923,28 @@ bool TimeZoneInfo::Load(ZoneInfoSource* zip) {
   return true;
 }
 
+namespace {
+
+bool CheckTimeZoneName(const std::string& name) {
+    // The "file:" prefix makes FileZoneInfoSource::Open treat the rest of the
+    // name as a path, so "file:/abs/path" would sidestep the "/" check below.
+    // The prefix is a test-only interface anyway, so reject it outright.
+    const char * forbidden_beginnings[] = {"/", "./", "~", "..", "file:"};
+    for (const auto & pattern : forbidden_beginnings) {
+        if (name.starts_with(pattern)) {
+            return false;
+        }
+    }
+
+    if (name.find("../") != std::string::npos) {
+        return false;
+    }
+
+    return true;
+}
+
+}  // namespace
+
 bool TimeZoneInfo::Load(const std::string& name) {
   // We can ensure that the loading of UTC or any other fixed-offset
   // zone never fails because the simple, fixed-offset state can be
@@ -931,6 +953,12 @@ bool TimeZoneInfo::Load(const std::string& name) {
   auto offset = seconds::zero();
   if (FixedOffsetFromName(name, &offset)) {
     return ResetToBuiltinUTC(offset);
+  }
+
+  // Check if timezone name contains forbidden patterns
+  // that can lead to arbitrary file open.
+  if (!CheckTimeZoneName(name)) {
+      return false;
   }
 
   // Find and use a ZoneInfoSource to load the named zone.
